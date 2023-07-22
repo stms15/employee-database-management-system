@@ -2,6 +2,13 @@ const inquirer = require("inquirer");
 const mysql = require("mysql2");
 require("dotenv");
 
+const db = mysql.createConnection({
+  host: "localhost",
+  user: process.env.MYSQL_USERNAME,
+  password: process.env.MYSQL_PASSWORD,
+  database: "employee_db",
+});
+
 function init() {
   inquirer
     .prompt([
