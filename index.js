@@ -1,6 +1,12 @@
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
-require("dotenv");
+require("dotenv").config();
+
+const {
+  viewAllDepartments,
+  viewAllRoles,
+  viewAllEmployees,
+} = require("./lib/view-functions");
 
 const db = mysql.createConnection({
   host: "localhost",
@@ -9,7 +15,7 @@ const db = mysql.createConnection({
   database: "employee_db",
 });
 
-function init() {
+async function init() {
   inquirer
     .prompt([
       {
@@ -28,7 +34,13 @@ function init() {
       },
     ])
     .then((response) => {
-      console.log(response.action);
+      if (response.action === "View all departments") {
+        viewAllDepartments(db);
+      } else if (response.action === "View all roles") {
+        viewAllRoles(db);
+      } else if (response.action === "View all employees") {
+        viewAllEmployees(db);
+      }
     });
 }
 
