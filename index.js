@@ -15,6 +15,8 @@ const {
   getRoleInfo,
   getEmployeeInfo,
 } = require("./lib/get-table-info");
+// Load update functions
+const updateEmployee = require("./lib/update-employee-info");
 
 // Connect to MySQL
 const db = mysql.createConnection({
@@ -148,6 +150,40 @@ async function init() {
               role_id: roleIds[roleIndex],
               manager_id: manager,
             });
+          });
+      } else if (response.action === "Update an employee role") {
+        let employeeInfo = await getEmployeeInfo(db);
+        const employeeIds = employeeInfo[0],
+          employeeNames = employeeInfo[1];
+        let roleInfo = await getRoleInfo(db);
+        const roleIds = roleInfo[0],
+          roleTitles = roleInfo[1],
+          roleSalaries = roleInfo[2];
+
+        inquirer
+          .prompt([
+            {
+              type: "list",
+              message: "Which employee would you like to update?",
+              choices: employeeNames,
+              name: "employeeName",
+            },
+            {
+              type: "list",
+              message: "What is their new role?",
+              choices: roleTitles,
+              name: "newRoleTitle",
+            },
+          ])
+          .then((response) => {
+            const employeeIndex = employeeNames.findIndex(
+              (el) => el === response.employeeName
+            );
+            const roleIndex = roleTitles.findIndex(
+              (el) => el === response.newRoleTitle
+            );
+
+            updateEmployee(db, employeeIds[employeeIndex], roleIds[roleIndex]);
           });
       }
     });
