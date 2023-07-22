@@ -9,14 +9,23 @@ const {
   viewAllEmployees,
 } = require("./lib/view-functions");
 const { addDepartment, addRole, addEmployee } = require("./lib/add-functions");
+
 // Load info request functions
 const {
   getDepartmentInfo,
   getRoleInfo,
   getEmployeeInfo,
 } = require("./lib/get-table-info");
+
 // Load update functions
 const updateEmployee = require("./lib/update-employee-info");
+
+// Load delete functions
+const {
+  deleteDepartment,
+  deleteRole,
+  deleteEmployee,
+} = require("./lib/remove-functions");
 
 // Connect to MySQL
 const db = mysql.createConnection({
@@ -41,6 +50,9 @@ async function init() {
           "Add a role",
           "Add an employee",
           "Update an employee role",
+          "Remove a department",
+          "Remove a role",
+          "Remove an employee",
         ],
         name: "action",
       },
@@ -63,8 +75,9 @@ async function init() {
               name: "depName",
             },
           ])
-          .then((response) => {
-            addDepartment(db, response.depName);
+          .then(async (response) => {
+            await addDepartment(db, response.depName);
+            viewAllDepartments(db);
           });
       } else if (response.action === "Add a role") {
         // Get list of current departments
@@ -92,15 +105,16 @@ async function init() {
               name: "roleDepName",
             },
           ])
-          .then((response) => {
+          .then(async (response) => {
             const depIndex = availableDepartments.findIndex(
               (el) => el === response.roleDepName
             );
-            addRole(db, {
+            await addRole(db, {
               title: response.roleTitle,
               salary: response.roleSalary,
               department_id: departmentIds[depIndex],
             });
+            viewAllRoles(db);
           });
       } else if (response.action === "Add an employee") {
         let roleInfo = await getRoleInfo(db);
@@ -132,7 +146,7 @@ async function init() {
               name: "employeeManager",
             },
           ])
-          .then((response) => {
+          .then(async (response) => {
             const roleIndex = availableRoles.findIndex(
               (el) => el === response.employeeRole
             );
@@ -144,12 +158,13 @@ async function init() {
               manager = employeeIds[managerIndex];
             }
 
-            addEmployee(db, {
+            await addEmployee(db, {
               first_name: response.employeeName.split(" ")[0],
               last_name: response.employeeName.split(" ")[1],
               role_id: roleIds[roleIndex],
               manager_id: manager,
             });
+            viewAllEmployees(db);
           });
       } else if (response.action === "Update an employee role") {
         let employeeInfo = await getEmployeeInfo(db);
@@ -175,7 +190,7 @@ async function init() {
               name: "newRoleTitle",
             },
           ])
-          .then((response) => {
+          .then(async (response) => {
             const employeeIndex = employeeNames.findIndex(
               (el) => el === response.employeeName
             );
@@ -183,8 +198,78 @@ async function init() {
               (el) => el === response.newRoleTitle
             );
 
-            updateEmployee(db, employeeIds[employeeIndex], roleIds[roleIndex]);
+            await updateEmployee(
+              db,
+              employeeIds[employeeIndex],
+              roleIds[roleIndex]
+            );
+            viewAllEmployees(db);
           });
+      } else if (response.action === "Remove a department") {
+        let departmentInfo = await getDepartmentInfo(db);
+        const departmentIds = departmentInfo[0],
+          departmentNames = departmentInfo[1];
+
+        inquirer
+          .prompt([
+            {
+              type: "list",
+              message: "Which department would you like to remove?",
+              choices: departmentNames,
+              name: "depName",
+            },
+          ])
+          .then(async (response) => {
+            const index = departmentNames.findIndex(
+              (el) => el === response.depName
+            );
+            await deleteDepartment(db, departmentIds[index]);
+            viewAllDepartments(db);
+          });
+      } else if (response.action === "Remove a role") {
+        let roleInfo = await getRoleInfo(db);
+        const roleIds = roleInfo[0],
+          roleTitles = roleInfo[1];
+
+        inquirer
+          .prompt([
+            {
+              type: "list",
+              message: "Which department would you like to remove?",
+              choices: roleTitles,
+              name: "roleTitle",
+            },
+          ])
+          .then(async (response) => {
+            const index = roleTitles.findIndex(
+              (el) => el === response.roleTitle
+            );
+            await deleteRole(db, roleIds[index]);
+            viewAllRoles(db);
+          });
+      } else if (response.action === "Remove an employee") {
+        let employeeInfo = await getEmployeeInfo(db);
+        const employeeIds = employeeInfo[0],
+          employeeNames = employeeInfo[1];
+
+        inquirer
+          .prompt([
+            {
+              type: "list",
+              message: "Which department would you like to remove?",
+              choices: employeeNames,
+              name: "employeeName",
+            },
+          ])
+          .then(async (response) => {
+            const index = employeeNames.findIndex(
+              (el) => el === response.employeeName
+            );
+            await deleteEmployee(db, employeeIds[index]);
+            viewAllEmployees(db);
+          });
+      } else {
+        console.log(`Unrecognized action: ${response.action}`);
       }
     });
 }
